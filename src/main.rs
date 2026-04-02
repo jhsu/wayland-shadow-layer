@@ -111,8 +111,42 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
         0.5 + 0.5 * sin(shade_phase),
     );
 
+    let branch_sway = sin(globals.time * 0.55) * 0.16 + sin(globals.time * 0.93 + 1.4) * 0.07;
+
+    let branch_curve_a = abs(
+        window_uv.x
+            + branch_sway
+            + 0.10 * sin(window_uv.y * 2.1 + branch_sway * 2.8)
+            + 0.05 * sin(window_uv.y * 4.6 - branch_sway * 3.4)
+            + 0.52,
+    );
+    let branch_curve_b = abs(
+        window_uv.x
+            + branch_sway * 0.78
+            + 0.08 * sin(window_uv.y * 2.8 - branch_sway * 2.2)
+            + 0.04 * sin(window_uv.y * 5.0 + branch_sway * 2.9)
+            + 0.18,
+    );
+    let branch_curve_c = abs(
+        window_uv.x
+            + branch_sway * 1.15
+            + 0.06 * sin(window_uv.y * 3.4 + branch_sway * 2.5)
+            + 0.03 * sin(window_uv.y * 6.2 - branch_sway * 3.0)
+            - 0.16,
+    );
+    let branch_shadow = max(
+        max(
+            1.0 - smoothstep(0.016, 0.090 + blur * 0.9, branch_curve_a),
+            1.0 - smoothstep(0.012, 0.070 + blur * 0.8, branch_curve_b),
+        ),
+        1.0 - smoothstep(0.010, 0.052 + blur * 0.7, branch_curve_c),
+    );
+
+    let foliage_shadow = clamp(branch_shadow * 0.92, 0.0, 1.0);
+
     mask *= vertical_bar * horizontal_bar;
     mask *= mix(0.45, 1.0, shade_mask);
+    mask *= mix(1.0, 0.38, foliage_shadow);
     mask = clamp(mask, 0.0, 1.0);
 
     let shadow_color = vec3f(0.08, 0.06, 0.07);
