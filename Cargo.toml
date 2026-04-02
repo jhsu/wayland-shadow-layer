@@ -1,0 +1,36 @@
+[package]
+name = "wayland-shadow-overlay"
+version = "0.1.0"
+edition = "2021"
+description = "Full-screen, click-through Wayland overlay rendering a soft golden-hour curtain-light effect via wlr-layer-shell."
+
+[[bin]]
+name = "wayland-shadow-overlay"
+path = "src/main.rs"
+
+[dependencies]
+
+# POD casts for GPU uniform uploads.
+bytemuck = { version = "1.13", features = ["derive"] }
+
+# Lightweight blocking helper for one-time async wgpu setup.
+pollster = "0.3"
+
+# Raw Wayland handles for creating a wgpu surface.
+raw-window-handle = "0.6"
+
+# Low-level Wayland client bindings: Connection, QueueHandle, Dispatch, Proxy.
+# `system` is required so raw wl_display / wl_surface pointers are available to wgpu.
+wayland-client = { version = "0.31", features = ["system"] }
+
+# Smithay Client Toolkit — high-level helpers for compositor, layer-shell, shm,
+# output, and registry, plus the delegation macro system.
+# `calloop` feature enables registry_queue_init and the blocking event loop.
+# xkbcommon is omitted since KeyboardInteractivity::None is used throughout.
+smithay-client-toolkit = { version = "0.19", default-features = false, features = ["calloop"] }
+
+# GPU renderer for the animated overlay.
+wgpu = "0.19"
+
+[patch.crates-io]
+dlib = { path = "vendor/dlib" }
