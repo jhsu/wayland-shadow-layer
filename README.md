@@ -1,23 +1,27 @@
 # wayland-shadow-overlay
 
 A full-screen, click-through Wayland overlay that renders a procedural
-"golden-hour light through a window" effect on top of every
-window on the desktop.
+"golden-hour light through sheer curtains" effect on top of the desktop.
+
+## Demo
+
+[Watch `demo.mp4`](./demo.mp4)
 
 ## Effect
 
-The overlay composites three low-contrast layers so the desktop beneath remains
-fully legible:
+The overlay composites several low-contrast layers so the desktop beneath
+remains fully legible:
 
-| Layer                | Description                                                                        |
-| -------------------- | ---------------------------------------------------------------------------------- |
-| Warm slanted beam    | A broad pale-amber projection falls across the screen at a gentle angle            |
-| Window-frame shadows | Multiple muntins and frame shadows break the beam into calm geometric panes        |
-| Depth blur           | Shadows start crisper near the source and soften as they travel across the surface |
-| Slow drift           | Barely perceptible motion keeps the light from feeling frozen                      |
+| Layer                | Description                                                                 |
+| -------------------- | --------------------------------------------------------------------------- |
+| Warm slanted beam    | A pale amber projection falls across the screen at a gentle angle            |
+| Curtain bands        | Soft vertical and horizontal occlusion suggests light filtering through sheers |
+| Foliage shadows      | Slow branch-like shadows drift across the lit area                           |
+| Depth blur           | The projection softens and spreads as it travels across the surface          |
+| Dust glints          | Sparse warm specks shimmer inside the lit portion                            |
 
-The result is a calm late-afternoon atmosphere: a soft window projection,
-warm light, muted frame shadows, and barely perceptible motion.
+The result is a calm late-afternoon atmosphere: diffused sunlight, soft curtain
+filtering, faint foliage motion, and subtle dust suspended in the light.
 
 ## Requirements
 
@@ -39,6 +43,9 @@ cargo build --release
 
 The compiled binary is placed at `target/release/wayland-shadow-overlay`.
 
+Note: the build currently fetches `dlib 0.5.3` from a pinned upstream git
+revision because that version is not available on crates.io.
+
 ## Running
 
 ```sh
@@ -49,9 +56,10 @@ The compiled binary is placed at `target/release/wayland-shadow-overlay`.
 cargo run --release
 ```
 
-The overlay starts immediately, covers all outputs at `Layer::Overlay`, and
-blocks on a Wayland event loop. Press `Ctrl-C` or send `SIGTERM` to exit
-(no keyboard events are consumed by the overlay itself).
+The overlay starts immediately, covers the compositor space at `Layer::Overlay`,
+then continuously redraws at roughly 60 FPS on the Wayland event loop. Press
+`Ctrl-C` or send `SIGTERM` to exit (no keyboard events are consumed by the
+overlay itself).
 
 ## Autostart
 
@@ -90,12 +98,11 @@ exec-once = wayland-shadow-overlay
 
 Edit the WGSL shader in `src/main.rs` (`SHADER` constant):
 
-- **`beam_center` math** — controls the slant and placement of the warm light band
-- **`beam_width`** — widens or narrows the glow falloff
-- **`window_footprint` / `inner_light`** — control the projected window shape
-- **`travel`, `frame_blur`, `crossbar_blur`** — control how shadows soften with distance
-- **`center_mullion` / `crossbar_*`** — tune the frame shadows and pane count inside the light
-- **`ambient_warmth` / `shadow_alpha`** — tune overall intensity while keeping contrast soft
-- **`mix(...)` colors** — shift between pale amber highlights and muted cool shadows
+- **`sun_angle` and `window_uv` remap** — control the projection angle and placement
+- **`travel`, `blur`, `bar_blur`** — control how the light spreads and softens with distance
+- **`vertical_bar`, `horizontal_bar`, `shade_phase`** — shape the curtain-like filtering
+- **`branch_sway` and `branch_curve_*`** — tune the drifting foliage shadow pattern
+- **`shadow_color`, `sunlight_color`, `shadow_alpha`, `sunlight_alpha`** — set the overall contrast and warmth
+- **`dust_glow` loop** — adjusts how often bright particles appear and how strongly they twinkle
 
 Rebuild with `cargo build --release` after any changes.
