@@ -80,6 +80,28 @@ exec --no-startup-id wayland-shadow-overlay
 exec-once = wayland-shadow-overlay
 ```
 
+## Run On Idle With `swayidle`
+
+If you only want the overlay while the session is idle, start it from
+`swayidle` and stop it again on resume:
+
+```sh
+swayidle -w \
+  timeout 300 'sh -c "wayland-shadow-overlay &"' \
+  resume 'pkill -x wayland-shadow-overlay'
+```
+
+This example waits 5 minutes, launches the overlay in the background, then
+terminates it as soon as input resumes.
+
+For Sway, you can place the same command in your config:
+
+```sh
+exec swayidle -w \
+  timeout 300 'sh -c "wayland-shadow-overlay &"' \
+  resume 'pkill -x wayland-shadow-overlay'
+```
+
 ## Technical notes
 
 | Property               | Value                                                   |
