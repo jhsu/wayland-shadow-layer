@@ -260,7 +260,8 @@ dependencies = [
 [[package]]
 name = "dlib"
 version = "0.5.3"
-source = "git+https://github.com/elinorbgr/dlib.git?rev=ab1a79fd8b92a331a5f123be9e1dcbbcbd48dbf8#ab1a79fd8b92a331a5f123be9e1dcbbcbd48dbf8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab8ecd87370524b461f8557c119c405552c396ed91fc0a8eec68679eab26f94a"
 dependencies = [
  "libloading 0.7.4",
 ]

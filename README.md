@@ -45,9 +45,6 @@ cargo build --release
 
 The compiled binary is placed at `target/release/wayland-shadow-overlay`.
 
-Note: the build currently fetches `dlib 0.5.3` from a pinned upstream git
-revision because that version is not available on crates.io.
-
 ## Running
 
 ```sh

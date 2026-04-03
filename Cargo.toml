@@ -31,6 +31,3 @@ smithay-client-toolkit = { version = "0.19", default-features = false, features 
 
 # GPU renderer for the animated overlay.
 wgpu = "0.19"
-
-[patch.crates-io]
-dlib = { git = "https://github.com/elinorbgr/dlib.git", rev = "ab1a79fd8b92a331a5f123be9e1dcbbcbd48dbf8" }
