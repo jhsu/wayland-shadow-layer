@@ -5,7 +5,9 @@ A full-screen, click-through Wayland overlay that renders a procedural
 
 ## Demo
 
-[Watch `demo.mp4`](./demo.mp4)
+
+https://github.com/user-attachments/assets/48017be0-22c2-4954-9d45-b7c2632f16a9
+
 
 ## Effect
 
