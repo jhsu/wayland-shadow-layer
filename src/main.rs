@@ -208,10 +208,9 @@ struct GpuState {
 
 impl GpuState {
     fn new(conn: &Connection, layer_surface: &LayerSurface) -> Self {
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::all(),
-            ..Default::default()
-        });
+        let mut instance_descriptor = wgpu::InstanceDescriptor::new_without_display_handle();
+        instance_descriptor.backends = wgpu::Backends::all();
+        let instance = wgpu::Instance::new(instance_descriptor);
 
         let raw_display_handle = RawDisplayHandle::Wayland(WaylandDisplayHandle::new(
             NonNull::new(conn.backend().display_ptr() as *mut _)
@@ -225,7 +224,7 @@ impl GpuState {
         let surface = unsafe {
             instance
                 .create_surface_unsafe(wgpu::SurfaceTargetUnsafe::RawHandle {
-                    raw_display_handle,
+                    raw_display_handle: Some(raw_display_handle),
                     raw_window_handle,
                 })
                 .expect("failed to create wgpu Wayland surface")
@@ -237,7 +236,7 @@ impl GpuState {
         }))
         .expect("failed to find compatible GPU adapter");
 
-        let (device, queue) = pollster::block_on(adapter.request_device(&Default::default(), None))
+        let (device, queue) = pollster::block_on(adapter.request_device(&Default::default()))
             .expect("failed to request GPU device");
 
         let capabilities = surface.get_capabilities(&adapter);
@@ -307,8 +306,8 @@ impl GpuState {
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("overlay pipeline layout"),
-            bind_group_layouts: &[&bind_group_layout],
-            push_constant_ranges: &[],
+            bind_group_layouts: &[Some(&bind_group_layout)],
+            immediate_size: 0,
         });
 
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -316,12 +315,14 @@ impl GpuState {
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,
-                entry_point: "vs_main",
+                entry_point: Some("vs_main"),
+                compilation_options: Default::default(),
                 buffers: &[],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
-                entry_point: "fs_main",
+                entry_point: Some("fs_main"),
+                compilation_options: Default::default(),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: surface_format,
                     blend: None,
@@ -331,7 +332,8 @@ impl GpuState {
             primitive: wgpu::PrimitiveState::default(),
             depth_stencil: None,
             multisample: wgpu::MultisampleState::default(),
-            multiview: None,
+            multiview_mask: None,
+            cache: None,
         });
 
         Self {
@@ -380,15 +382,23 @@ impl App {
             return;
         }
 
-        let surface_texture = match self.gpu.surface.get_current_texture() {
-            Ok(texture) => texture,
-            Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
+        let (surface_texture, is_suboptimal) = match self.gpu.surface.get_current_texture() {
+            wgpu::CurrentSurfaceTexture::Success(texture) => (texture, false),
+            wgpu::CurrentSurfaceTexture::Suboptimal(texture) => (texture, true),
+            wgpu::CurrentSurfaceTexture::Outdated => {
                 self.gpu.configure_surface(self.width, self.height);
                 return;
             }
-            Err(wgpu::SurfaceError::Timeout) => return,
-            Err(wgpu::SurfaceError::OutOfMemory) => {
-                eprintln!("wgpu surface ran out of memory");
+            wgpu::CurrentSurfaceTexture::Lost => {
+                eprintln!("wgpu surface was lost; exiting so it can be recreated cleanly");
+                self.should_exit = true;
+                return;
+            }
+            wgpu::CurrentSurfaceTexture::Timeout | wgpu::CurrentSurfaceTexture::Occluded => {
+                return;
+            }
+            wgpu::CurrentSurfaceTexture::Validation => {
+                eprintln!("wgpu surface acquisition hit a validation error");
                 self.should_exit = true;
                 return;
             }
@@ -418,6 +428,7 @@ impl App {
                 label: Some("overlay render pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &texture_view,
+                    depth_slice: None,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
@@ -432,6 +443,7 @@ impl App {
                 depth_stencil_attachment: None,
                 timestamp_writes: None,
                 occlusion_query_set: None,
+                multiview_mask: None,
             });
             render_pass.set_pipeline(&self.gpu.render_pipeline);
             render_pass.set_bind_group(0, &self.gpu.uniform_bind_group, &[]);
@@ -440,6 +452,10 @@ impl App {
 
         self.gpu.queue.submit(Some(encoder.finish()));
         surface_texture.present();
+
+        if is_suboptimal {
+            self.gpu.configure_surface(self.width, self.height);
+        }
     }
 
     fn update_click_through_region(&self, qh: &QueueHandle<Self>) {

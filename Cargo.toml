@@ -30,4 +30,4 @@ wayland-client = { version = "0.31", features = ["system"] }
 smithay-client-toolkit = { version = "0.19", default-features = false, features = ["calloop"] }
 
 # GPU renderer for the animated overlay.
-wgpu = "0.19"
+wgpu = "29.0"
